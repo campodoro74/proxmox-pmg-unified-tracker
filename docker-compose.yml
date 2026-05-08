@@ -1,0 +1,27 @@
+services:
+  tracker:
+    build: .
+    container_name: unified-pmg-tracker
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    container_name: unified-pmg-tracker-proxy
+    depends_on:
+      - tracker
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

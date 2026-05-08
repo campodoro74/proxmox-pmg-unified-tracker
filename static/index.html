@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unified PMG Tracking Center</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__title">Unified PMG Tracking Center</div>
+      <div class="topbar__status" id="healthStatus">Checking…</div>
+    </header>
+
+    <main class="page">
+      <section class="card">
+        <div class="card__title">Tracking Center</div>
+
+        <form class="filters" id="searchForm">
+          <div class="filters__grid">
+            <label class="field">
+              <div class="field__label">Sender</div>
+              <input class="field__input" type="text" name="from" placeholder="sender@example.com" />
+            </label>
+
+            <label class="field">
+              <div class="field__label">Receiver</div>
+              <input class="field__input" type="text" name="target" placeholder="receiver@example.com" />
+            </label>
+
+            <label class="field filters__wide">
+              <div class="field__label">Filter</div>
+              <input class="field__input" type="text" name="xfilter" placeholder="Any substring (subject, reason, etc.)" />
+            </label>
+
+            <label class="field">
+              <div class="field__label">MsgID contains</div>
+              <input class="field__input" type="text" name="msgid" placeholder="partial message-id" />
+            </label>
+
+            <label class="field">
+              <div class="field__label">QID contains</div>
+              <input class="field__input" type="text" name="qid" placeholder="postfix qid" />
+            </label>
+
+            <label class="field">
+              <div class="field__label">Client contains</div>
+              <input class="field__input" type="text" name="client" placeholder="ip/host substring" />
+            </label>
+
+            <label class="field">
+              <div class="field__label">Start</div>
+              <input class="field__input" type="datetime-local" name="start" required />
+            </label>
+
+            <label class="field">
+              <div class="field__label">End</div>
+              <input class="field__input" type="datetime-local" name="end" required />
+            </label>
+
+            <div class="field field--checkbox">
+              <label class="check">
+                <input type="checkbox" name="greylist" />
+                <span>Include Greylist</span>
+              </label>
+              <label class="check">
+                <input type="checkbox" name="ndr" />
+                <span>Include NDR</span>
+              </label>
+              <label class="check">
+                <input type="checkbox" name="errors_only" />
+                <span>Errors only</span>
+              </label>
+            </div>
+
+            <div class="field filters__wide">
+              <div class="field__label">Nodes</div>
+              <div class="status-filters" id="nodeFilters"></div>
+            </div>
+
+            <div class="field filters__wide">
+              <div class="field__label">Status</div>
+              <div class="status-filters">
+                <label class="check"><input type="checkbox" name="status" value="accepted/delivered" /> <span>Accepted</span></label>
+                <label class="check"><input type="checkbox" name="status" value="relayed" /> <span>Relayed</span></label>
+                <label class="check"><input type="checkbox" name="status" value="deferred" /> <span>Deferred</span></label>
+                <label class="check"><input type="checkbox" name="status" value="greylisted" /> <span>Greylisted</span></label>
+                <label class="check"><input type="checkbox" name="status" value="blocked" /> <span>Blocked</span></label>
+                <label class="check"><input type="checkbox" name="status" value="blocked (rbl)" /> <span>RBL</span></label>
+                <label class="check"><input type="checkbox" name="status" value="recipient unknown" /> <span>Recipient unknown</span></label>
+                <label class="check"><input type="checkbox" name="status" value="rejected" /> <span>Rejected</span></label>
+                <label class="check"><input type="checkbox" name="status" value="quarantined" /> <span>Quarantined</span></label>
+              </div>
+            </div>
+
+            <div class="field filters__wide">
+              <div class="field__label">Size (bytes)</div>
+              <div class="size-filters">
+                <label class="field size-filters__field">
+                  <div class="field__label">Min</div>
+                  <input class="field__input" type="number" name="min_size" min="0" placeholder="0" />
+                </label>
+                <label class="field size-filters__field">
+                  <div class="field__label">Max</div>
+                  <input class="field__input" type="number" name="max_size" min="0" placeholder="1000000" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="filters__actions">
+            <button class="btn btn--primary" type="submit">Search</button>
+            <button class="btn" type="button" id="btnNow24h">Last 24h</button>
+            <button class="btn" type="button" id="btnClear">Clear</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card card--table">
+        <div class="table__toolbar">
+          <div class="table__meta" id="resultMeta">No results.</div>
+          <div class="pager">
+            <button class="btn btn--small" id="prevPage" type="button">Prev</button>
+            <div class="pager__info" id="pageInfo">0 / 0</div>
+            <button class="btn btn--small" id="nextPage" type="button">Next</button>
+          </div>
+        </div>
+
+        <div class="table__wrap">
+          <table class="table" id="resultsTable">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Node</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Status</th>
+                <th>D</th>
+                <th>R</th>
+                <th class="num">Size</th>
+                <th>MsgID</th>
+                <th>QID</th>
+                <th>Relay</th>
+                <th>Client</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="warn" id="nodeErrors" hidden></div>
+      </section>
+    </main>
+
+    <aside class="drawer" id="detailDrawer" aria-hidden="true">
+      <div class="drawer__header">
+        <div class="drawer__title" id="detailTitle">Message detail</div>
+        <button class="btn btn--small" type="button" id="closeDrawer">Close</button>
+      </div>
+      <div class="drawer__content">
+        <div class="kv" id="detailKv"></div>
+        <pre class="logs" id="detailLogs"></pre>
+      </div>
+    </aside>
+    <div class="backdrop" id="backdrop" hidden></div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

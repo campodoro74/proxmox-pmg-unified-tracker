@@ -1,0 +1,13 @@
+{
+  email you@example.com
+}
+
+pmg.example.com {
+  reverse_proxy tracker:8080
+
+  # Option A (recommended): protect via app basic auth (APP_USERNAME/APP_PASSWORD).
+  # Option B: protect here in the proxy. Uncomment to enable.
+  # basicauth /* {
+  #   admin JDJhJDE0JHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eA==
+  # }
+}
