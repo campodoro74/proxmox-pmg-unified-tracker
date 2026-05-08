@@ -9,7 +9,27 @@
   <body>
     <header class="topbar">
       <div class="topbar__title">Unified PMG Tracking Center</div>
-      <div class="topbar__status" id="healthStatus">Checking…</div>
+      <div class="topbar__right">
+        <button class="btn btn--green btn--small" id="btnRefreshPage" type="button">Refresh</button>
+        <div class="topbar__group">
+          <label class="check topbar__check">
+            <input type="checkbox" id="autoRefreshEnabled" />
+            <span>Auto-refresh</span>
+          </label>
+          <label class="field topbar__field topbar__field--inline">
+            <div class="field__label">Minutes</div>
+            <input class="field__input field__input--small" id="autoRefreshMinutes" type="number" min="1" step="1" value="5" />
+          </label>
+          <div class="topbar__countdown" id="autoRefreshCountdown" hidden>Next refresh in 5:00</div>
+        </div>
+        <div class="topbar__group">
+          <label class="check topbar__check">
+            <input type="checkbox" id="simpleModeEnabled" />
+            <span>Simple</span>
+          </label>
+        </div>
+        <div class="topbar__status" id="healthStatus">Checking…</div>
+      </div>
     </header>
 
     <main class="page">
@@ -33,17 +53,17 @@
               <input class="field__input" type="text" name="xfilter" placeholder="Any substring (subject, reason, etc.)" />
             </label>
 
-            <label class="field">
+            <label class="field advanced-only">
               <div class="field__label">MsgID contains</div>
               <input class="field__input" type="text" name="msgid" placeholder="partial message-id" />
             </label>
 
-            <label class="field">
+            <label class="field advanced-only">
               <div class="field__label">QID contains</div>
               <input class="field__input" type="text" name="qid" placeholder="postfix qid" />
             </label>
 
-            <label class="field">
+            <label class="field advanced-only">
               <div class="field__label">Client contains</div>
               <input class="field__input" type="text" name="client" placeholder="ip/host substring" />
             </label>
@@ -67,18 +87,18 @@
                 <input type="checkbox" name="ndr" />
                 <span>Include NDR</span>
               </label>
-              <label class="check">
+              <label class="check advanced-only">
                 <input type="checkbox" name="errors_only" />
                 <span>Errors only</span>
               </label>
             </div>
 
-            <div class="field filters__wide">
+            <div class="field filters__wide advanced-only">
               <div class="field__label">Nodes</div>
               <div class="status-filters" id="nodeFilters"></div>
             </div>
 
-            <div class="field filters__wide">
+            <div class="field filters__wide advanced-only">
               <div class="field__label">Status</div>
               <div class="status-filters">
                 <label class="check"><input type="checkbox" name="status" value="accepted/delivered" /> <span>Accepted</span></label>
@@ -93,7 +113,7 @@
               </div>
             </div>
 
-            <div class="field filters__wide">
+            <div class="field filters__wide advanced-only">
               <div class="field__label">Size (bytes)</div>
               <div class="size-filters">
                 <label class="field size-filters__field">
@@ -135,13 +155,13 @@
                 <th>From</th>
                 <th>To</th>
                 <th>Status</th>
-                <th>D</th>
-                <th>R</th>
+                <th class="advanced-col">D</th>
+                <th class="advanced-col">R</th>
                 <th class="num">Size</th>
                 <th>MsgID</th>
-                <th>QID</th>
-                <th>Relay</th>
-                <th>Client</th>
+                <th class="advanced-col">QID</th>
+                <th class="advanced-col">Relay</th>
+                <th class="advanced-col">Client</th>
               </tr>
             </thead>
             <tbody id="resultsBody"></tbody>

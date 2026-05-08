@@ -5,6 +5,15 @@ const state = {
   limit: 200,
   total: 0,
   lastQuery: null,
+  autoRefreshTimer: null,
+  autoRefreshCountdownTimer: null,
+  nextRefreshAtMs: null,
+};
+
+const STORAGE_KEYS = {
+  autoRefreshEnabled: "pmgTracker:autoRefreshEnabled",
+  autoRefreshMinutes: "pmgTracker:autoRefreshMinutes",
+  simpleModeEnabled: "pmgTracker:simpleModeEnabled",
 };
 
 function pad2(n) {
@@ -153,19 +162,22 @@ function renderRows(rows, queryParams) {
 
   for (const row of rows || []) {
     const tr = document.createElement("tr");
+    const status = String(row.status || row.dstatus || row.rstatus || "").toLowerCase();
+    const isError = status && !status.includes("accepted") && !status.includes("relayed");
+    if (isError) tr.classList.add("is-error");
     tr.innerHTML = `
       <td>${escapeHtml(fmtTime(row.time))}</td>
       <td><code>${escapeHtml(row.node || "")}</code></td>
       <td>${escapeHtml(row.from || "")}</td>
       <td>${escapeHtml(row.to || "")}</td>
       <td>${statusPill(row.status || row.dstatus || row.rstatus)}</td>
-      <td><code>${escapeHtml(row.dstatus || "")}</code></td>
-      <td><code>${escapeHtml(row.rstatus || "")}</code></td>
+      <td class="advanced-col"><code>${escapeHtml(row.dstatus || "")}</code></td>
+      <td class="advanced-col"><code>${escapeHtml(row.rstatus || "")}</code></td>
       <td class="num">${escapeHtml(fmtBytes(row.size))}</td>
       <td><code>${escapeHtml(row.msgid || "")}</code></td>
-      <td><code>${escapeHtml(row.qid || "")}</code></td>
-      <td><code>${escapeHtml(row.relay || "")}</code></td>
-      <td><code>${escapeHtml(row.client || "")}</code></td>
+      <td class="advanced-col"><code>${escapeHtml(row.qid || "")}</code></td>
+      <td class="advanced-col"><code>${escapeHtml(row.relay || "")}</code></td>
+      <td class="advanced-col"><code>${escapeHtml(row.client || "")}</code></td>
     `;
 
     tr.addEventListener("click", () => openDetail(row, queryParams));
@@ -175,7 +187,7 @@ function renderRows(rows, queryParams) {
 
 function openDrawer() {
   $("detailDrawer").setAttribute("aria-hidden", "false");
-  $("backdrop").hidden = false;
+  $("backdrop").hidden = true;
 }
 
 function closeDrawer() {
@@ -301,6 +313,10 @@ function clearForm() {
 }
 
 function wireEvents() {
+  $("btnRefreshPage")?.addEventListener("click", () => {
+    window.location.reload();
+  });
+
   $("searchForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     state.offset = 0;
@@ -334,7 +350,91 @@ function wireEvents() {
   });
 }
 
+function setSimpleMode(enabled) {
+  document.body.classList.toggle("simple-mode", Boolean(enabled));
+  try {
+    localStorage.setItem(STORAGE_KEYS.simpleModeEnabled, enabled ? "1" : "0");
+  } catch {}
+}
+
+function setAutoRefresh(enabled, minutes) {
+  if (state.autoRefreshTimer) {
+    clearInterval(state.autoRefreshTimer);
+    state.autoRefreshTimer = null;
+  }
+  if (state.autoRefreshCountdownTimer) {
+    clearInterval(state.autoRefreshCountdownTimer);
+    state.autoRefreshCountdownTimer = null;
+  }
+  state.nextRefreshAtMs = null;
+
+  const mins = Math.max(1, Number(minutes || 5));
+  if (enabled) {
+    state.nextRefreshAtMs = Date.now() + mins * 60 * 1000;
+    state.autoRefreshTimer = setInterval(() => {
+      doSearch().catch(() => {});
+      state.nextRefreshAtMs = Date.now() + mins * 60 * 1000;
+    }, mins * 60 * 1000);
+
+    const countdownEl = $("autoRefreshCountdown");
+    if (countdownEl) {
+      countdownEl.hidden = false;
+      const tick = () => {
+        if (!state.nextRefreshAtMs) return;
+        const remaining = Math.max(0, state.nextRefreshAtMs - Date.now());
+        const totalSeconds = Math.ceil(remaining / 1000);
+        const mm = Math.floor(totalSeconds / 60);
+        const ss = totalSeconds % 60;
+        countdownEl.textContent = `Next refresh in ${mm}:${String(ss).padStart(2, "0")}`;
+      };
+      tick();
+      state.autoRefreshCountdownTimer = setInterval(tick, 1000);
+    }
+  } else {
+    const countdownEl = $("autoRefreshCountdown");
+    if (countdownEl) countdownEl.hidden = true;
+  }
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.autoRefreshEnabled, enabled ? "1" : "0");
+    localStorage.setItem(STORAGE_KEYS.autoRefreshMinutes, String(mins));
+  } catch {}
+}
+
+function initPreferences() {
+  const autoEnabledEl = $("autoRefreshEnabled");
+  const autoMinutesEl = $("autoRefreshMinutes");
+  const simpleEl = $("simpleModeEnabled");
+
+  let autoEnabled = false;
+  let autoMinutes = 5;
+  let simpleEnabled = false;
+  try {
+    autoEnabled = localStorage.getItem(STORAGE_KEYS.autoRefreshEnabled) === "1";
+    const storedMins = Number(localStorage.getItem(STORAGE_KEYS.autoRefreshMinutes) || "5");
+    autoMinutes = Number.isFinite(storedMins) && storedMins > 0 ? storedMins : 5;
+    const storedSimple = localStorage.getItem(STORAGE_KEYS.simpleModeEnabled);
+    simpleEnabled = storedSimple === null ? true : storedSimple === "1";
+  } catch {}
+
+  if (autoEnabledEl) autoEnabledEl.checked = autoEnabled;
+  if (autoMinutesEl) autoMinutesEl.value = String(autoMinutes);
+  if (simpleEl) simpleEl.checked = simpleEnabled;
+
+  setSimpleMode(simpleEnabled);
+  setAutoRefresh(autoEnabled, autoMinutes);
+
+  autoEnabledEl?.addEventListener("change", () => {
+    setAutoRefresh(Boolean(autoEnabledEl.checked), autoMinutesEl?.value || "5");
+  });
+  autoMinutesEl?.addEventListener("change", () => {
+    setAutoRefresh(Boolean(autoEnabledEl?.checked), autoMinutesEl.value || "5");
+  });
+  simpleEl?.addEventListener("change", () => setSimpleMode(Boolean(simpleEl.checked)));
+}
+
 setLast30m();
 wireEvents();
+initPreferences();
 refreshHealth();
 doSearch().catch(() => {});

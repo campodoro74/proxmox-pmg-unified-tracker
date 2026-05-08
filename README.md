@@ -13,6 +13,16 @@ Fast, single-page “Tracking Center”-like search across multiple Proxmox Mail
 - Shows a single merged table across all nodes.
 - Click a row to view per-message detailed syslog entries (PMG `/tracker/{id}`).
 
+## UI modes
+
+- **Simple mode (default)**: shows only the basic search fields and basic columns.
+- **Advanced mode**: enables additional filters (nodes/status/errors/size/qid/msgid/client) and extra columns (D/R/QID/Relay/Client).
+
+## Refreshing
+
+- **Refresh button** reloads the page.
+- **Auto-refresh** can periodically re-run the current search (default every 5 minutes) and shows a countdown.
+
 ## PMG API used
 
 - List: `GET /api2/json/nodes/{node}/tracker`

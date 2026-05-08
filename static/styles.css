@@ -33,6 +33,14 @@ body {
 }
 .topbar__title { font-weight: 650; letter-spacing: 0.2px; }
 .topbar__status { font-size: 12px; color: #cbd5e1; }
+.topbar__right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+.topbar__group { display: inline-flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid rgba(148,163,184,0.25); border-radius: 10px; background: rgba(15, 23, 42, 0.2); }
+.topbar__check { color: #e2e8f0; }
+.topbar__field .field__label { color: #cbd5e1; margin-bottom: 4px; }
+.topbar__field--inline { display: inline-flex; align-items: center; gap: 8px; }
+.topbar__field--inline .field__label { margin: 0; font-size: 12px; }
+.field__input--small { padding: 6px 8px; max-width: 90px; }
+.topbar__countdown { font-size: 12px; color: #cbd5e1; font-variant-numeric: tabular-nums; }
 
 .page {
   max-width: none;
@@ -119,6 +127,12 @@ body {
 }
 .btn--primary:hover { background: var(--primary-2); border-color: var(--primary-2); }
 .btn--small { padding: 6px 10px; border-radius: 7px; font-size: 12px; }
+.btn--green {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+.btn--green:hover { background: #15803d; border-color: #15803d; }
 
 .table__toolbar {
   display: flex;
@@ -141,7 +155,16 @@ body {
 }
 .table th { text-align: left; font-size: 12px; color: var(--muted); background: #fcfcfd; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
 .table td.num, .table th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.table tbody tr:hover { background: #f8fafc; cursor: pointer; }
+.table tbody tr { cursor: pointer; }
+.table tbody tr:nth-child(even) { background: #f9fafb; }
+.table tbody tr.is-error { background: #fef2f2; }
+.table tbody tr.is-error:nth-child(even) { background: #feecec; }
+.table tbody tr:hover { background: #f1f5f9; }
+
+.advanced-only {}
+.advanced-col {}
+.simple-mode .advanced-only { display: none !important; }
+.simple-mode .advanced-col { display: none !important; }
 
 .pill {
   display: inline-flex;
@@ -172,7 +195,7 @@ body {
   position: fixed;
   top: 0;
   right: 0;
-  width: min(560px, 92vw);
+  width: min(920px, 96vw);
   height: 100%;
   background: #fff;
   border-left: 1px solid var(--border);
@@ -215,7 +238,7 @@ body {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.32);
+  background: transparent;
   z-index: 40;
 }
 
