@@ -8,12 +8,16 @@ const state = {
   autoRefreshTimer: null,
   autoRefreshCountdownTimer: null,
   nextRefreshAtMs: null,
+  sortKey: "time",
+  sortDir: "desc",
+  lastRows: [],
 };
 
 const STORAGE_KEYS = {
   autoRefreshEnabled: "pmgTracker:autoRefreshEnabled",
   autoRefreshMinutes: "pmgTracker:autoRefreshMinutes",
   simpleModeEnabled: "pmgTracker:simpleModeEnabled",
+  hideSearchEnabled: "pmgTracker:hideSearchEnabled",
 };
 
 function pad2(n) {
@@ -185,6 +189,59 @@ function renderRows(rows, queryParams) {
   }
 }
 
+function sortedRows(rows) {
+  const key = state.sortKey || "time";
+  const dir = state.sortDir === "asc" ? 1 : -1;
+
+  const get = (row) => {
+    if (key === "time" || key === "size") return Number(row?.[key] ?? 0);
+    if (key === "status") return String(row?.status || row?.dstatus || row?.rstatus || "").toLowerCase();
+    return String(row?.[key] ?? "").toLowerCase();
+  };
+
+  const out = [...(rows || [])];
+  out.sort((a, b) => {
+    const av = get(a);
+    const bv = get(b);
+    if (typeof av === "number" && typeof bv === "number") {
+      if (av !== bv) return (av - bv) * dir;
+    } else {
+      const c = String(av).localeCompare(String(bv));
+      if (c !== 0) return c * dir;
+    }
+    // tie-breaker: latest first
+    return (Number(b?.time ?? 0) - Number(a?.time ?? 0));
+  });
+  return out;
+}
+
+function wireSorting() {
+  const table = $("resultsTable");
+  if (!table) return;
+  const thead = table.querySelector("thead");
+  if (!thead) return;
+
+  thead.addEventListener("click", (e) => {
+    const th = e.target?.closest?.("th");
+    const key = th?.getAttribute?.("data-sort");
+    if (!key) return;
+
+    if (state.sortKey === key) {
+      state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+    } else {
+      state.sortKey = key;
+      state.sortDir = key === "time" ? "desc" : "asc";
+    }
+
+    if (state.lastRows?.length) {
+      const queryParams = state.lastQuery ? new URLSearchParams(state.lastQuery) : new URLSearchParams();
+      queryParams.delete("offset");
+      queryParams.delete("limit");
+      renderRows(sortedRows(state.lastRows), queryParams);
+    }
+  });
+}
+
 function openDrawer() {
   $("detailDrawer").setAttribute("aria-hidden", "false");
   $("backdrop").hidden = true;
@@ -251,6 +308,7 @@ async function doSearch() {
 
   const payload = await apiGet(`/api/search?${query.toString()}`);
   state.total = payload.total || 0;
+  state.lastRows = payload.rows || [];
 
   setMeta(`Showing ${Math.min(state.limit, (payload.rows || []).length)} of ${state.total} messages`);
   setPager();
@@ -260,7 +318,7 @@ async function doSearch() {
   const detailParams = new URLSearchParams(query);
   detailParams.delete("offset");
   detailParams.delete("limit");
-  renderRows(payload.rows, detailParams);
+  renderRows(sortedRows(payload.rows || []), detailParams);
 }
 
 async function refreshHealth() {
@@ -293,9 +351,24 @@ function setLast24h() {
   document.querySelector('input[name="end"]').value = toLocalInputValue(now);
 }
 
+function setLastHour() {
+  const now = new Date();
+  const start = new Date(now.getTime() - 60 * 60 * 1000);
+  document.querySelector('input[name="start"]').value = toLocalInputValue(start);
+  document.querySelector('input[name="end"]').value = toLocalInputValue(now);
+}
+
 function setLast30m() {
   const now = new Date();
   const start = new Date(now.getTime() - 30 * 60 * 1000);
+  document.querySelector('input[name="start"]').value = toLocalInputValue(start);
+  document.querySelector('input[name="end"]').value = toLocalInputValue(now);
+}
+
+function setToday() {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
   document.querySelector('input[name="start"]').value = toLocalInputValue(start);
   document.querySelector('input[name="end"]').value = toLocalInputValue(now);
 }
@@ -329,6 +402,18 @@ function wireEvents() {
 
   $("btnNow24h").addEventListener("click", () => {
     setLast24h();
+    state.offset = 0;
+    doSearch().catch(() => {});
+  });
+  $("btnLastHour")?.addEventListener("click", () => {
+    setLastHour();
+    state.offset = 0;
+    doSearch().catch(() => {});
+  });
+  $("btnToday")?.addEventListener("click", () => {
+    setToday();
+    state.offset = 0;
+    doSearch().catch(() => {});
   });
   $("btnClear").addEventListener("click", () => clearForm());
 
@@ -354,6 +439,14 @@ function setSimpleMode(enabled) {
   document.body.classList.toggle("simple-mode", Boolean(enabled));
   try {
     localStorage.setItem(STORAGE_KEYS.simpleModeEnabled, enabled ? "1" : "0");
+  } catch {}
+}
+
+function setHideSearch(enabled) {
+  const card = $("searchCard");
+  if (card) card.hidden = Boolean(enabled);
+  try {
+    localStorage.setItem(STORAGE_KEYS.hideSearchEnabled, enabled ? "1" : "0");
   } catch {}
 }
 
@@ -405,23 +498,28 @@ function initPreferences() {
   const autoEnabledEl = $("autoRefreshEnabled");
   const autoMinutesEl = $("autoRefreshMinutes");
   const simpleEl = $("simpleModeEnabled");
+  const hideSearchEl = $("hideSearchEnabled");
 
   let autoEnabled = false;
   let autoMinutes = 5;
   let simpleEnabled = false;
+  let hideSearchEnabled = false;
   try {
     autoEnabled = localStorage.getItem(STORAGE_KEYS.autoRefreshEnabled) === "1";
     const storedMins = Number(localStorage.getItem(STORAGE_KEYS.autoRefreshMinutes) || "5");
     autoMinutes = Number.isFinite(storedMins) && storedMins > 0 ? storedMins : 5;
     const storedSimple = localStorage.getItem(STORAGE_KEYS.simpleModeEnabled);
     simpleEnabled = storedSimple === null ? true : storedSimple === "1";
+    hideSearchEnabled = localStorage.getItem(STORAGE_KEYS.hideSearchEnabled) === "1";
   } catch {}
 
   if (autoEnabledEl) autoEnabledEl.checked = autoEnabled;
   if (autoMinutesEl) autoMinutesEl.value = String(autoMinutes);
   if (simpleEl) simpleEl.checked = simpleEnabled;
+  if (hideSearchEl) hideSearchEl.checked = hideSearchEnabled;
 
   setSimpleMode(simpleEnabled);
+  setHideSearch(hideSearchEnabled);
   setAutoRefresh(autoEnabled, autoMinutes);
 
   autoEnabledEl?.addEventListener("change", () => {
@@ -431,10 +529,12 @@ function initPreferences() {
     setAutoRefresh(Boolean(autoEnabledEl?.checked), autoMinutesEl.value || "5");
   });
   simpleEl?.addEventListener("change", () => setSimpleMode(Boolean(simpleEl.checked)));
+  hideSearchEl?.addEventListener("change", () => setHideSearch(Boolean(hideSearchEl.checked)));
 }
 
 setLast30m();
 wireEvents();
 initPreferences();
+wireSorting();
 refreshHealth();
 doSearch().catch(() => {});

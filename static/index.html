@@ -29,12 +29,18 @@
             <span>Simple</span>
           </label>
         </div>
+        <div class="topbar__group">
+          <label class="check topbar__check">
+            <input type="checkbox" id="hideSearchEnabled" />
+            <span>Hide search</span>
+          </label>
+        </div>
         <div class="topbar__status" id="healthStatus">Checking…</div>
       </div>
     </header>
 
     <main class="page">
-      <section class="card">
+      <section class="card" id="searchCard">
         <div class="card__title">Tracking Center</div>
 
         <form class="filters" id="searchForm">
@@ -131,6 +137,8 @@
 
           <div class="filters__actions">
             <button class="btn btn--primary" type="submit">Search</button>
+            <button class="btn" type="button" id="btnToday">Today</button>
+            <button class="btn" type="button" id="btnLastHour">Last hour</button>
             <button class="btn" type="button" id="btnNow24h">Last 24h</button>
             <button class="btn" type="button" id="btnClear">Clear</button>
           </div>
@@ -151,18 +159,18 @@
           <table class="table" id="resultsTable">
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Node</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Status</th>
-                <th class="advanced-col">D</th>
-                <th class="advanced-col">R</th>
-                <th class="num">Size</th>
-                <th>MsgID</th>
-                <th class="advanced-col">QID</th>
-                <th class="advanced-col">Relay</th>
-                <th class="advanced-col">Client</th>
+                <th data-sort="time">Time</th>
+                <th data-sort="node">Node</th>
+                <th data-sort="from">From</th>
+                <th data-sort="to">To</th>
+                <th data-sort="status">Status</th>
+                <th class="advanced-col" data-sort="dstatus">D</th>
+                <th class="advanced-col" data-sort="rstatus">R</th>
+                <th class="num" data-sort="size">Size</th>
+                <th data-sort="msgid">MsgID</th>
+                <th class="advanced-col" data-sort="qid">QID</th>
+                <th class="advanced-col" data-sort="relay">Relay</th>
+                <th class="advanced-col" data-sort="client">Client</th>
               </tr>
             </thead>
             <tbody id="resultsBody"></tbody>
