@@ -13,6 +13,16 @@ Fast, single-page “Tracking Center”-like search across multiple Proxmox Mail
 - Shows a single merged table across all nodes.
 - Click a row to view per-message detailed syslog entries (PMG `/tracker/{id}`).
 
+## Screenshots
+
+Search view (example):
+
+![Search view](docs/screenshots/search.svg)
+
+Message detail drawer (example):
+
+![Detail view](docs/screenshots/detail.svg)
+
 ## UI modes
 
 - **Simple mode (default)**: shows only the basic search fields and basic columns.

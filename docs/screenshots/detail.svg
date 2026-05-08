@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <style>
+      .bg { fill: #f5f6f8; }
+      .top { fill: #111827; }
+      .drawer { fill: #ffffff; stroke: #d0d5dd; stroke-width: 2; }
+      .text { fill: #101828; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+      .muted { fill: #667085; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+      .mono { fill: #475467; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New"; }
+      .logbg { fill: #0b1220; }
+      .logfg { fill: #e5e7eb; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New"; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1280" height="720" />
+  <rect class="top" x="0" y="0" width="1280" height="56" />
+  <text class="text" x="18" y="36" font-size="18" fill="#ffffff">Unified PMG Tracking Center</text>
+
+  <rect class="drawer" x="360" y="70" width="900" height="630" rx="14" />
+  <text class="text" x="388" y="110" font-size="16">Message detail (node1)</text>
+  <text class="muted" x="1120" y="110" font-size="12">Close</text>
+
+  <text class="muted" x="388" y="150" font-size="12">time</text>
+  <text class="mono" x="520" y="150" font-size="12">2026-05-08 10:23:50</text>
+  <text class="muted" x="388" y="176" font-size="12">node</text>
+  <text class="mono" x="520" y="176" font-size="12">node1</text>
+  <text class="muted" x="388" y="202" font-size="12">from</text>
+  <text class="mono" x="520" y="202" font-size="12">sender@example.com</text>
+  <text class="muted" x="388" y="228" font-size="12">to</text>
+  <text class="mono" x="520" y="228" font-size="12">receiver@example.com</text>
+  <text class="muted" x="388" y="254" font-size="12">status</text>
+  <text class="mono" x="520" y="254" font-size="12">deferred</text>
+
+  <rect class="logbg" x="388" y="290" width="844" height="380" rx="12" />
+  <text class="logfg" x="408" y="326" font-size="12">2026-05-08T10:23:50 postfix/qmgr: from=&lt;sender@example.com&gt;</text>
+  <text class="logfg" x="408" y="348" font-size="12">... queued as 12345ABC ...</text>
+  <text class="logfg" x="408" y="370" font-size="12">... status=deferred (host ... said: 451 temporary failure) ...</text>
+</svg>
