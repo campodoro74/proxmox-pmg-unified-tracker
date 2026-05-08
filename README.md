@@ -15,13 +15,13 @@ Fast, single-page “Tracking Center”-like search across multiple Proxmox Mail
 
 ## Screenshots
 
-Search view (example):
+Advanced view (example):
 
-![Search view](docs/screenshots/search.svg)
+![Advanced view](docs/screenshots/advanced.png)
 
-Message detail drawer (example):
+Simple view (example):
 
-![Detail view](docs/screenshots/detail.svg)
+![Simple view](docs/screenshots/simple.png)
 
 ## UI modes
 
@@ -32,6 +32,18 @@ Message detail drawer (example):
 
 - **Refresh button** reloads the page.
 - **Auto-refresh** can periodically re-run the current search (default every 5 minutes) and shows a countdown.
+
+## Quick time range buttons
+
+Use the quick buttons next to Search:
+
+- **Today**
+- **Last hour**
+- **Last 24h**
+
+## Sorting
+
+Click a column header to sort by that column. Clicking the same header again toggles ascending/descending. When values are equal, results are tie-broken with newest mail first.
 
 ## PMG API used
 
