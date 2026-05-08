@@ -11,6 +11,7 @@ const state = {
   sortKey: "time",
   sortDir: "desc",
   lastRows: [],
+  rangeMode: "last30m", // last30m | lastHour | last24h | today | custom
 };
 
 const STORAGE_KEYS = {
@@ -134,6 +135,76 @@ async function apiGet(path) {
     throw new Error(msg);
   }
   return payload;
+}
+
+async function runSearchWithQuery(query) {
+  state.lastQuery = query;
+
+  setMeta("Searching…");
+  $("resultsBody").innerHTML = "";
+  renderErrors([]);
+  setPager();
+
+  const payload = await apiGet(`/api/search?${query.toString()}`);
+  state.total = payload.total || 0;
+  state.lastRows = payload.rows || [];
+
+  setMeta(`Showing ${Math.min(state.limit, (payload.rows || []).length)} of ${state.total} messages`);
+  setPager();
+  renderErrors(payload.errors);
+
+  // Keep a stable base query for detail calls (start/end/from/target/xfilter/greylist/ndr).
+  const detailParams = new URLSearchParams(query);
+  detailParams.delete("offset");
+  detailParams.delete("limit");
+  renderRows(sortedRows(payload.rows || []), detailParams);
+}
+
+function computeRangeEpochSeconds(mode) {
+  const now = new Date();
+  const end = Math.floor(now.getTime() / 1000);
+  if (mode === "today") {
+    const startDate = new Date(now);
+    startDate.setHours(0, 0, 0, 0);
+    return { start: Math.floor(startDate.getTime() / 1000), end };
+  }
+  if (mode === "lastHour") return { start: end - 60 * 60, end };
+  if (mode === "last24h") return { start: end - 24 * 60 * 60, end };
+  // default last30m
+  return { start: end - 30 * 60, end };
+}
+
+function maybeUpdateFormDatesForMode(mode) {
+  const startEl = document.querySelector('input[name="start"]');
+  const endEl = document.querySelector('input[name="end"]');
+  if (!startEl || !endEl) return;
+  if (mode === "custom") return;
+  const { start, end } = computeRangeEpochSeconds(mode);
+  startEl.value = toLocalInputValue(new Date(start * 1000));
+  endEl.value = toLocalInputValue(new Date(end * 1000));
+}
+
+async function refreshResults() {
+  try {
+    if (state.lastQuery) {
+      const q = new URLSearchParams(state.lastQuery);
+      // If user is in a relative time mode, keep "now" moving forward.
+      if (state.rangeMode && state.rangeMode !== "custom") {
+        const { start, end } = computeRangeEpochSeconds(state.rangeMode);
+        q.set("starttime", String(start));
+        q.set("endtime", String(end));
+        maybeUpdateFormDatesForMode(state.rangeMode);
+      }
+      // Ensure we respect current paging.
+      q.set("offset", String(state.offset));
+      q.set("limit", String(state.limit));
+      await runSearchWithQuery(q);
+      return;
+    }
+    await doSearch();
+  } catch (err) {
+    setMeta(`Auto-refresh failed: ${err?.message || err}`);
+  }
 }
 
 function setMeta(text) {
@@ -299,26 +370,9 @@ async function openDetail(row, queryParams) {
 
 async function doSearch() {
   const query = buildQueryFromForm();
-  state.lastQuery = query;
-
-  setMeta("Searching…");
-  $("resultsBody").innerHTML = "";
-  renderErrors([]);
-  setPager();
-
-  const payload = await apiGet(`/api/search?${query.toString()}`);
-  state.total = payload.total || 0;
-  state.lastRows = payload.rows || [];
-
-  setMeta(`Showing ${Math.min(state.limit, (payload.rows || []).length)} of ${state.total} messages`);
-  setPager();
-  renderErrors(payload.errors);
-
-  // Keep a stable base query for detail calls (start/end/from/target/xfilter/greylist/ndr).
-  const detailParams = new URLSearchParams(query);
-  detailParams.delete("offset");
-  detailParams.delete("limit");
-  renderRows(sortedRows(payload.rows || []), detailParams);
+  // Manual submit implies a custom time range unless already set by a preset.
+  if (!state.rangeMode) state.rangeMode = "custom";
+  await runSearchWithQuery(query);
 }
 
 async function refreshHealth() {
@@ -345,6 +399,7 @@ function renderNodeFilters(nodes) {
 }
 
 function setLast24h() {
+  state.rangeMode = "last24h";
   const now = new Date();
   const start = new Date(now.getTime() - 24 * 3600 * 1000);
   document.querySelector('input[name="start"]').value = toLocalInputValue(start);
@@ -352,6 +407,7 @@ function setLast24h() {
 }
 
 function setLastHour() {
+  state.rangeMode = "lastHour";
   const now = new Date();
   const start = new Date(now.getTime() - 60 * 60 * 1000);
   document.querySelector('input[name="start"]').value = toLocalInputValue(start);
@@ -359,6 +415,7 @@ function setLastHour() {
 }
 
 function setLast30m() {
+  state.rangeMode = "last30m";
   const now = new Date();
   const start = new Date(now.getTime() - 30 * 60 * 1000);
   document.querySelector('input[name="start"]').value = toLocalInputValue(start);
@@ -366,6 +423,7 @@ function setLast30m() {
 }
 
 function setToday() {
+  state.rangeMode = "today";
   const now = new Date();
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
@@ -393,6 +451,7 @@ function wireEvents() {
   $("searchForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     state.offset = 0;
+    state.rangeMode = "custom";
     try {
       await doSearch();
     } catch (err) {
@@ -465,7 +524,7 @@ function setAutoRefresh(enabled, minutes) {
   if (enabled) {
     state.nextRefreshAtMs = Date.now() + mins * 60 * 1000;
     state.autoRefreshTimer = setInterval(() => {
-      doSearch().catch(() => {});
+      refreshResults().catch(() => {});
       state.nextRefreshAtMs = Date.now() + mins * 60 * 1000;
     }, mins * 60 * 1000);
 
